@@ -588,26 +588,28 @@
     const [wx, wy] = toWorld(cx, cy, lakeLayer.d);
     return hitCtx.isPointInPath(lakeLayer.path, wx, wy) && wy < 900 ? [wx, wy] : null;
   }
-  function plop() {   // '또롱' — 높고 맑은 물방울 + 길게 남는 울림
+  function plop() {   // 실제 물방울: 물속 작은 공기방울이 '퐁' 하고 짧게 울리는 소리 + 찰박 튀는 물소리
     if (!AC) return;
-    const t = AC.currentTime, f0 = 1150 + Math.random() * 350;
-    const out = AC.createGain(); out.gain.value = 1;
-    out.connect(master);
-    const wet = AC.createGain(); wet.gain.value = 0.9; out.connect(wet); wet.connect(getReverb());
-    [[0, 1, 1], [0.11 + Math.random() * 0.05, 0.35, 1.5]].forEach(([dl, v, fm]) => {
+    const t = AC.currentTime;
+    const out = AC.createGain(); out.gain.value = 1; out.connect(master);
+    const wet = AC.createGain(); wet.gain.value = 0.15; out.connect(wet); wet.connect(getReverb());
+    const bubble = (dl, f0, v, dur) => {   // 공기방울 공명: 음이 빠르게 올라가며 금방 사라짐
       const o = AC.createOscillator(); o.type = 'sine';
-      o.frequency.setValueAtTime(f0 * fm, t + dl); o.frequency.exponentialRampToValueAtTime(f0 * fm * 1.9, t + dl + 0.05);
+      o.frequency.setValueAtTime(f0, t + dl); o.frequency.exponentialRampToValueAtTime(f0 * 2.2, t + dl + dur);
       const g = AC.createGain(); g.gain.setValueAtTime(0, t + dl);
-      g.gain.linearRampToValueAtTime(0.07 * v, t + dl + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + 0.22);
-      o.connect(g); g.connect(out); o.start(t + dl); o.stop(t + dl + 0.25);
-    });
-    // 맑게 남는 종 같은 여운
-    [[f0 * 2.4, 0.022], [f0 * 3.6, 0.008]].forEach(([f, v]) => {
-      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f;
-      const g = AC.createGain(); g.gain.setValueAtTime(0, t + 0.03);
-      g.gain.linearRampToValueAtTime(v, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
-      o.connect(g); g.connect(out); o.start(t + 0.03); o.stop(t + 1.35);
-    });
+      g.gain.linearRampToValueAtTime(v, t + dl + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + dur);
+      o.connect(g); g.connect(out); o.start(t + dl); o.stop(t + dl + dur + 0.02);
+    };
+    bubble(0, 480 + Math.random() * 220, 0.07, 0.07);                      // 첫 '퐁'
+    // 물이 튀는 '찰박' (짧은 물결 잡음)
+    const src = AC.createBufferSource(); src.buffer = noiseBuf;
+    const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200 + Math.random() * 800; bp.Q.value = 1.2;
+    const gn = AC.createGain(); gn.gain.setValueAtTime(0, t);
+    gn.gain.linearRampToValueAtTime(0.02, t + 0.004); gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    src.connect(bp); bp.connect(gn); gn.connect(out); src.start(t, Math.random()); src.stop(t + 0.1);
+    // 뒤따라 떨어지는 작은 물방울 1~3개
+    for (let i = 0, n = 1 + Math.floor(Math.random() * 3); i < n; i++)
+      bubble(0.08 + Math.random() * 0.25, 900 + Math.random() * 900, 0.018 + Math.random() * 0.015, 0.03 + Math.random() * 0.03);
   }
   stage.addEventListener('pointerdown', e => {
     if (!document.body.classList.contains('ready')) return;
