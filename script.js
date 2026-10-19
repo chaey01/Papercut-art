@@ -784,17 +784,19 @@
     reverb = AC.createConvolver(); reverb.buffer = ir; reverb.connect(master);
     return reverb;
   }
-  // ---------- PEACEFUL 음악: 피아노 + 바이올린 + 첼로 실내악 느낌의 잔잔한 왈츠 (D장조, 3/4박) ----------
+  // ---------- PEACEFUL 음악: 파헬벨 '캐논' (D장조) — 바이올린 · 첼로 · 피아노 ----------
+  // 1680년경 작곡된 곡이라 저작권이 없는 고전 음악. 첼로가 같은 저음 8개를 계속 반복하고(그라운드 베이스),
+  // 그 위로 바이올린이 선율을 돌림노래(캐논)처럼 겹쳐 연주함.
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
-  const BEAT = 0.72;   // 한 박 길이(초) — 느긋한 왈츠
-  // 화음 진행 D – Bm – G – A (두 번), 각 마디: [베이스, 화음 세 음]
-  const HARM = [[38, [62, 66, 69]], [35, [62, 66, 71]], [31, [62, 67, 71]], [33, [61, 64, 69]],
-                [38, [62, 66, 69]], [35, [62, 66, 71]], [31, [62, 67, 71]], [33, [61, 64, 69]]];
-  // 바이올린 선율 (직접 만든 짧은 노래): [음, 박 수]
-  const MELODY = [
-    [[78, 2], [81, 1]], [[83, 2], [81, 1]], [[79, 1], [78, 1], [76, 1]], [[76, 3]],
-    [[78, 2], [86, 1]], [[85, 1], [83, 1], [81, 1]], [[83, 1], [81, 1], [79, 1]], [[76, 2], [73, 1]]
-  ];
+  const BEAT = 0.7;   // 4분음표 길이(초)
+  const CANON_BASS = [50, 45, 47, 42, 43, 38, 43, 45];                       // D A B F# G D G A (각 2박)
+  const CANON_CHORD = [[62, 66, 69], [61, 64, 69], [62, 66, 71], [61, 66, 69],
+                       [59, 62, 67], [62, 66, 69], [59, 62, 67], [61, 64, 69]];  // 각 저음 위의 화음
+  const LINE_HALF = [78, 76, 74, 73, 71, 69, 71, 73];                        // 첫 선율: 2분음표 (F# E D C# B A B C#)
+  const LINE_QUARTER = [74, 78, 81, 79, 78, 74, 78, 76, 74, 71, 74, 69, 67, 71, 69, 67];  // 둘째 선율: 4분음표
+  // 진행: 0 = 피아노+첼로만 → 1 = 바이올린 첫 선율 → 2 = 둘째 선율 + 두 번째 바이올린이 첫 선율(캐논)
+  //       → 3 = 첫 선율 한 옥타브 위 + 둘째 선율 → 다시 1부터 반복
+  const CANON_PLAN = [[], [['half', 0, 0.006]], [['quarter', 0, 0.0055], ['half', 0, 0.0035]], [['half', 12, 0.0045], ['quarter', 0, 0.004]]];
   function piano(bus, f, t, v) {   // 부드러운 피아노: 배음이 위로 갈수록 빨리 사라짐
     const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200; lp.connect(bus);
     [[1, 1, 2.8], [2, 0.42, 1.6], [3, 0.18, 1.0], [4, 0.08, 0.6]].forEach(([m, a, d]) => {
@@ -826,21 +828,22 @@
       bus.gain.linearRampToValueAtTime(1, AC.currentTime + 2.5);
       const dry = AC.createGain(); dry.gain.value = 0.75; bus.connect(dry); dry.connect(master);
       const wet = AC.createGain(); wet.gain.value = 0.35; bus.connect(wet); wet.connect(getReverb());   // 작은 연주홀 울림
-      let bar = 0, next = AC.currentTime + 0.15;
-      const schedule = () => {   // 한 마디씩 미리 예약
+      let cycle = 0, next = AC.currentTime + 0.15;   // 한 바퀴 = 저음 8개 × 2박 = 16박
+      const schedule = () => {
         while (next < AC.currentTime + 1.5) {
-          const [bass, chord] = HARM[bar % HARM.length], mel = MELODY[bar % MELODY.length];
-          const sw = () => (Math.random() - 0.5) * 0.02;                          // 사람이 치듯 살짝씩 어긋나게
-          piano(bus, midi(bass + 12), next + sw(), 0.022);                          // 왈츠 1박: 베이스
-          chord.forEach(n => piano(bus, midi(n), next + BEAT + sw(), 0.009));       // 2박·3박: 화음
-          chord.forEach(n => piano(bus, midi(n), next + BEAT * 2 + sw(), 0.007));
-          bowed(bus, midi(bass), next, BEAT * 3, 0.0035, 700, 4);                 // 첼로: 마디 내내 낮게
-          let off = 0;
-          mel.forEach(([n, beats]) => {                                             // 바이올린 선율
-            bowed(bus, midi(n), next + off * BEAT, beats * BEAT * 0.95, 0.0055, 2200, 7);
-            off += beats;
+          const sw = () => (Math.random() - 0.5) * 0.02;   // 사람이 연주하듯 살짝씩 어긋나게
+          const plan = CANON_PLAN[cycle === 0 ? 0 : 1 + ((cycle - 1) % 3)];
+          CANON_BASS.forEach((bn, i) => {
+            const t0 = next + i * 2 * BEAT;
+            bowed(bus, midi(bn), t0, 2 * BEAT * 0.97, 0.004, 650, 4);            // 첼로
+            const [a, b2, c] = CANON_CHORD[i];                                     // 피아노: 화음을 8분음표로 펼쳐 침
+            [a, b2, c, b2].forEach((n, k) => piano(bus, midi(n), t0 + k * BEAT / 2 + sw(), k === 0 ? 0.011 : 0.008));
           });
-          next += BEAT * 3; bar++;
+          for (const [line, shift, vol] of plan) {                                 // 바이올린
+            if (line === 'half') LINE_HALF.forEach((n, i) => bowed(bus, midi(n + shift), next + i * 2 * BEAT, 2 * BEAT * 0.95, vol, 2400, 7));
+            else LINE_QUARTER.forEach((n, i) => bowed(bus, midi(n + shift), next + i * BEAT, BEAT * 0.9, vol, 2400, 6));
+          }
+          next += 16 * BEAT; cycle++;
         }
       };
       schedule();
