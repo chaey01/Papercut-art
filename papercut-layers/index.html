@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Papercut Meditation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="stage" id="stage">
+    <canvas id="cv" role="img" aria-label="종이 레이어로 쌓이는 산과 계곡"></canvas>
+  </main>
+
+  <nav class="tags" aria-label="감각 레이어">
+    <button class="tag" type="button" data-sense="brown" aria-pressed="false" style="--i:0" data-label="BROWN"><span class="note" data-label="BROWN">BROWN</span></button>
+    <button class="tag" type="button" data-sense="chipping" aria-pressed="false" style="--i:1" data-label="CHIPPING"><span class="note" data-label="CHIPPING">CHIPPING</span></button>
+    <button class="tag" type="button" data-sense="peaceful" aria-pressed="false" style="--i:2" data-label="PEACEFUL"><span class="note" data-label="PEACEFUL">PEACEFUL</span></button>
+    <button class="tag" type="button" data-sense="mountain" aria-pressed="false" style="--i:3" data-label="MOUNTAIN"><span class="note" data-label="MOUNTAIN">MOUNTAIN</span></button>
+  </nav>
+
+  <!-- 인트로: 접힌 팝업 카드. 누르면 위쪽 장이 일어서며 펼쳐지고, 카메라가 카드 안으로 들어가요 -->
+  <div id="intro" class="edge" aria-hidden="true">
+    <div class="cam">
+      <div class="float">
+        <div class="book">
+          <div class="table-shadow"></div>
+          <div class="floor">
+            <div class="floor-glow"></div>
+          </div>
+          <!-- 카드가 펼쳐질 때 접힌 자리에서 일어서는 산 종이 -->
+          <!-- 카드 속 나무·덤불: intro.js가 장면의 숲 종이를 깊이별로 세워 넣어요 (산 앞쪽) -->
+          <div class="diorama"></div>
+          <div class="flap">
+            <div class="face inside"><div class="inside-glow"></div></div>
+            <div class="face cover">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="intro.js"></script>
+</body>
+</html>
