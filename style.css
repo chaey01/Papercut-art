@@ -182,7 +182,7 @@ body.ready .tag .note { transition: --peel .45s cubic-bezier(.3, 1.1, .5, 1), tr
 #intro.open .float { animation-play-state: paused; }
 @keyframes float { 50% { transform: translateY(-10px); } }
 /* 클릭을 기다리는 동안: 편지가 숨 쉬듯 살짝 떠오르고, 마우스를 올리면 손가락 커서 */
-#intro.wait { cursor: pointer; }
+#intro.wait .book { cursor: pointer; }   /* 편지 위에서만 손가락 커서 */
 #intro.wait .float { animation: appear .5s ease both, float 3.6s ease-in-out infinite; }
 @keyframes appear { from { opacity: 0; } }
 @keyframes arrive {

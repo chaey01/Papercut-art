@@ -141,6 +141,6 @@
     intro.classList.remove('face', 'wait');
     openCard();
   };
-  intro.addEventListener('click', start);
+  intro.querySelector('.book').addEventListener('click', start);   // 편지(카드)를 눌러야만 열림
   window.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') start(); });
 })();
