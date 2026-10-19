@@ -784,56 +784,82 @@
     reverb = AC.createConvolver(); reverb.buffer = ir; reverb.connect(master);
     return reverb;
   }
-  const CHORDS = [   // D장조의 부드러운 화음들 (Hz)
-    [146.83, 220.0, 277.18, 369.99],   // Dmaj7
-    [123.47, 185.0, 277.18, 293.66],   // Bm9
-    [98.0, 146.83, 185.0, 246.94],     // Gmaj7
-    [110.0, 164.81, 246.94, 277.18]    // A add9
+  // ---------- PEACEFUL 음악: 밝고 상쾌한 장조 — 맑은 칼림바 아르페지오 + 옅은 바탕 화음 ----------
+  const midi = n => 440 * Math.pow(2, (n - 69) / 12);
+  // C장조 I–V–vi–IV (C · G · Am · F) — 산뜻하고 밝은 진행
+  const SONG = [
+    { pad: [60, 64, 67], arp: [72, 76, 79, 84, 79, 76, 74, 76] },   // C
+    { pad: [59, 62, 67], arp: [71, 74, 79, 83, 79, 74, 76, 74] },   // G
+    { pad: [60, 64, 69], arp: [72, 76, 81, 84, 81, 76, 79, 76] },   // Am
+    { pad: [60, 65, 69], arp: [72, 77, 81, 84, 81, 77, 76, 74] }    // F
   ];
-  function stringChord(bus, notes, t, dur) {   // 아주 옅은 부드러운 바탕음 (두 음만, 둥근 소리)
-    for (const fq of notes.slice(1, 3)) {
-      const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.007, t + 3.5);
-      g.gain.setValueAtTime(0.007, t + dur - 3.5);
-      g.gain.linearRampToValueAtTime(0, t + dur);
-      const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650; lp.Q.value = 0.2;
-      lp.connect(g); g.connect(bus);
-      const o = AC.createOscillator(); o.type = 'triangle'; o.frequency.value = fq;
-      o.connect(lp); o.start(t); o.stop(t + dur + 0.1);
-    }
-  }
-  const PLUCK = [587.33, 659.25, 739.99, 880, 987.77, 1174.66];   // D장조 오음계 — 어떤 순서로 울려도 편안함
-  function softPluck(bus) {   // 드문드문 '똥' 하고 울리는 맑은 음 (뮤직박스처럼 작게)
-    const t = AC.currentTime + 0.02, f = PLUCK[Math.floor(Math.random() * PLUCK.length)];
-    [[1, 0.018], [2, 0.004]].forEach(([m, v]) => {
+  const BEAT = 0.3;   // 8분음표 길이(초) — 100 BPM, 가볍게 걷는 빠르기
+  function kalimba(bus, f, t, v) {   // 통통 튀는 맑은 음
+    [[1, v], [3.98, v * 0.18], [2, v * 0.12]].forEach(([m, vv], i) => {
       const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f * m;
       const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(v, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
-      o.connect(g); g.connect(bus); o.start(t); o.stop(t + 2.5);
+      g.gain.linearRampToValueAtTime(vv, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + (i ? 0.35 : 1.1));
+      o.connect(g); g.connect(bus); o.start(t); o.stop(t + 1.2);
     });
+  }
+  function padChord(bus, notes, t, dur) {   // 아주 옅게 깔리는 밝은 화음
+    for (const n of notes) {
+      const o = AC.createOscillator(); o.type = 'triangle'; o.frequency.value = midi(n);
+      const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+      const g = AC.createGain(); g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.0045, t + 0.6); g.gain.setValueAtTime(0.0045, t + dur - 0.5); g.gain.linearRampToValueAtTime(0, t + dur);
+      o.connect(lp); lp.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.05);
+    }
   }
   function setStrings(on) {
     if (!AC) return;
     if (on && !strings) {
-      const bus = AC.createGain(); bus.gain.value = 1;
-      const dry = AC.createGain(); dry.gain.value = 0.8; bus.connect(dry); dry.connect(master);
-      const wet = AC.createGain(); wet.gain.value = 0.3; bus.connect(wet); wet.connect(getReverb());
-      let i = 0;
-      const play = () => { stringChord(bus, CHORDS[i++ % CHORDS.length], AC.currentTime + 0.05, 11); };
-      play();
-      const timer = setInterval(play, 8000);   // 8초마다 다음 화음 (앞 화음과 3초쯤 겹침)
-      let alive = true;
-      const pluckLoop = () => { if (!alive) return; softPluck(bus); setTimeout(pluckLoop, 2200 + Math.random() * 3200); };
-      setTimeout(pluckLoop, 900);
-      strings = { bus, timer, stop: () => { alive = false; } };
+      const bus = AC.createGain(); bus.gain.value = 0;
+      bus.gain.linearRampToValueAtTime(1, AC.currentTime + 2);
+      const dry = AC.createGain(); dry.gain.value = 0.85; bus.connect(dry); dry.connect(master);
+      const wet = AC.createGain(); wet.gain.value = 0.22; bus.connect(wet); wet.connect(getReverb());
+      let bar = 0, next = AC.currentTime + 0.1;
+      const schedule = () => {   // 한 마디(8박)씩 미리 예약
+        while (next < AC.currentTime + 1.2) {
+          const ch = SONG[bar % SONG.length];
+          padChord(bus, ch.pad, next, BEAT * 8 + 0.3);
+          ch.arp.forEach((n, k) => {
+            if (Math.random() < 0.12 && k > 0) return;               // 가끔 한 음씩 쉬어서 기계적이지 않게
+            kalimba(bus, midi(n), next + k * BEAT + (Math.random() - 0.5) * 0.012, k === 0 ? 0.03 : 0.022);
+          });
+          next += BEAT * 8; bar++;
+        }
+      };
+      schedule();
+      const timer = setInterval(schedule, 400);
+      strings = { bus, timer };
     } else if (!on && strings) {
       const st = strings; strings = null;
-      clearInterval(st.timer); if (st.stop) st.stop();
+      clearInterval(st.timer);
       const t = AC.currentTime;
       st.bus.gain.cancelScheduledValues(t); st.bus.gain.setValueAtTime(st.bus.gain.value, t);
-      st.bus.gain.linearRampToValueAtTime(0, t + 2.5);
-      setTimeout(() => st.bus.disconnect(), 3000);
+      st.bus.gain.linearRampToValueAtTime(0, t + 2);
+      setTimeout(() => st.bus.disconnect(), 4000);
     }
+  }
+
+  // 인트로 끝: 새들이 다 올라오면 '띠옹~' 하고 맑게 휘어 올라가는 소리
+  function sparkle() {
+    if (!AC) return;
+    const t = AC.currentTime;
+    const out = AC.createGain(); out.gain.value = 1; out.connect(master);
+    const wet = AC.createGain(); wet.gain.value = 0.7; out.connect(wet); wet.connect(getReverb());
+    [[1, 0.045], [2, 0.012], [3, 0.006]].forEach(([m, v]) => {
+      const o = AC.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(880 * m, t);
+      o.frequency.exponentialRampToValueAtTime(1320 * m, t + 0.09);    // '띠'
+      o.frequency.exponentialRampToValueAtTime(1760 * m, t + 0.32);    // '옹~' 위로 휘어 올라감
+      const vib = AC.createOscillator(); vib.frequency.value = 6; const vg = AC.createGain(); vg.gain.value = 12 * m;
+      vib.connect(vg); vg.connect(o.frequency);
+      const g = AC.createGain(); g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v, t + 0.02); g.gain.setValueAtTime(v, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + 1.6); vib.start(t); vib.stop(t + 1.6);
+    });
   }
 
   // ---------- state ----------
@@ -1406,7 +1432,7 @@
         .map(L => ({ d: L.d, sense: L.sense, canvas: L.canvas, tiles: L.tiles, bbox: L.bbox, hinge: L.hinge }))
     };
   }
-  window.papercut = { birds, comers, ensureAudio, unfold, paperFlip, cloudSound, birdSound, chirp, bowl, place, popAll, paperLayers, thump: () => thud(0.95) };
+  window.papercut = { birds, comers, ensureAudio, unfold, paperFlip, cloudSound, birdSound, chirp, sparkle, bowl, place, popAll, paperLayers, thump: () => thud(0.95) };
 
   resize();
   updateUI();
