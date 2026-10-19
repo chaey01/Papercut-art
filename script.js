@@ -784,50 +784,63 @@
     reverb = AC.createConvolver(); reverb.buffer = ir; reverb.connect(master);
     return reverb;
   }
-  // ---------- PEACEFUL 음악: 밝고 상쾌한 장조 — 맑은 칼림바 아르페지오 + 옅은 바탕 화음 ----------
+  // ---------- PEACEFUL 음악: 피아노 + 바이올린 + 첼로 실내악 느낌의 잔잔한 왈츠 (D장조, 3/4박) ----------
   const midi = n => 440 * Math.pow(2, (n - 69) / 12);
-  // C장조 I–V–vi–IV (C · G · Am · F) — 산뜻하고 밝은 진행
-  const SONG = [
-    { pad: [60, 64, 67], arp: [72, 76, 79, 84, 79, 76, 74, 76] },   // C
-    { pad: [59, 62, 67], arp: [71, 74, 79, 83, 79, 74, 76, 74] },   // G
-    { pad: [60, 64, 69], arp: [72, 76, 81, 84, 81, 76, 79, 76] },   // Am
-    { pad: [60, 65, 69], arp: [72, 77, 81, 84, 81, 77, 76, 74] }    // F
+  const BEAT = 0.72;   // 한 박 길이(초) — 느긋한 왈츠
+  // 화음 진행 D – Bm – G – A (두 번), 각 마디: [베이스, 화음 세 음]
+  const HARM = [[38, [62, 66, 69]], [35, [62, 66, 71]], [31, [62, 67, 71]], [33, [61, 64, 69]],
+                [38, [62, 66, 69]], [35, [62, 66, 71]], [31, [62, 67, 71]], [33, [61, 64, 69]]];
+  // 바이올린 선율 (직접 만든 짧은 노래): [음, 박 수]
+  const MELODY = [
+    [[78, 2], [81, 1]], [[83, 2], [81, 1]], [[79, 1], [78, 1], [76, 1]], [[76, 3]],
+    [[78, 2], [86, 1]], [[85, 1], [83, 1], [81, 1]], [[83, 1], [81, 1], [79, 1]], [[76, 2], [73, 1]]
   ];
-  const BEAT = 0.3;   // 8분음표 길이(초) — 100 BPM, 가볍게 걷는 빠르기
-  function kalimba(bus, f, t, v) {   // 통통 튀는 맑은 음
-    [[1, v], [3.98, v * 0.18], [2, v * 0.12]].forEach(([m, vv], i) => {
-      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f * m;
+  function piano(bus, f, t, v) {   // 부드러운 피아노: 배음이 위로 갈수록 빨리 사라짐
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200; lp.connect(bus);
+    [[1, 1, 2.8], [2, 0.42, 1.6], [3, 0.18, 1.0], [4, 0.08, 0.6]].forEach(([m, a, d]) => {
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f * m * (1 + (m - 1) * 0.0006);
       const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(vv, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + (i ? 0.35 : 1.1));
-      o.connect(g); g.connect(bus); o.start(t); o.stop(t + 1.2);
+      g.gain.linearRampToValueAtTime(v * a, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t + d + 0.05);
     });
   }
-  function padChord(bus, notes, t, dur) {   // 아주 옅게 깔리는 밝은 화음
-    for (const n of notes) {
-      const o = AC.createOscillator(); o.type = 'triangle'; o.frequency.value = midi(n);
-      const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
-      const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.0045, t + 0.6); g.gain.setValueAtTime(0.0045, t + dur - 0.5); g.gain.linearRampToValueAtTime(0, t + dur);
-      o.connect(lp); lp.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.05);
-    }
+  function bowed(bus, f, t, dur, v, cutoff, vibCents) {   // 활로 켜는 현 (바이올린·첼로)
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; lp.Q.value = 0.4;
+    const g = AC.createGain(); g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(v, t + Math.min(0.18, dur * 0.3));
+    g.gain.setValueAtTime(v * 0.9, t + dur * 0.75); g.gain.linearRampToValueAtTime(0, t + dur + 0.25);
+    lp.connect(g); g.connect(bus);
+    const vib = AC.createOscillator(); vib.frequency.value = 5.2;
+    const vg = AC.createGain(); vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(vibCents, t + 0.35);
+    vib.connect(vg);
+    [-5, 5].forEach(c => {
+      const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = c;
+      vg.connect(o.detune); o.connect(lp); o.start(t); o.stop(t + dur + 0.3);
+    });
+    vib.start(t); vib.stop(t + dur + 0.3);
   }
   function setStrings(on) {
     if (!AC) return;
     if (on && !strings) {
       const bus = AC.createGain(); bus.gain.value = 0;
-      bus.gain.linearRampToValueAtTime(1, AC.currentTime + 2);
-      const dry = AC.createGain(); dry.gain.value = 0.85; bus.connect(dry); dry.connect(master);
-      const wet = AC.createGain(); wet.gain.value = 0.22; bus.connect(wet); wet.connect(getReverb());
-      let bar = 0, next = AC.currentTime + 0.1;
-      const schedule = () => {   // 한 마디(8박)씩 미리 예약
-        while (next < AC.currentTime + 1.2) {
-          const ch = SONG[bar % SONG.length];
-          padChord(bus, ch.pad, next, BEAT * 8 + 0.3);
-          ch.arp.forEach((n, k) => {
-            if (Math.random() < 0.12 && k > 0) return;               // 가끔 한 음씩 쉬어서 기계적이지 않게
-            kalimba(bus, midi(n), next + k * BEAT + (Math.random() - 0.5) * 0.012, k === 0 ? 0.03 : 0.022);
+      bus.gain.linearRampToValueAtTime(1, AC.currentTime + 2.5);
+      const dry = AC.createGain(); dry.gain.value = 0.75; bus.connect(dry); dry.connect(master);
+      const wet = AC.createGain(); wet.gain.value = 0.35; bus.connect(wet); wet.connect(getReverb());   // 작은 연주홀 울림
+      let bar = 0, next = AC.currentTime + 0.15;
+      const schedule = () => {   // 한 마디씩 미리 예약
+        while (next < AC.currentTime + 1.5) {
+          const [bass, chord] = HARM[bar % HARM.length], mel = MELODY[bar % MELODY.length];
+          const sw = () => (Math.random() - 0.5) * 0.02;                          // 사람이 치듯 살짝씩 어긋나게
+          piano(bus, midi(bass + 12), next + sw(), 0.022);                          // 왈츠 1박: 베이스
+          chord.forEach(n => piano(bus, midi(n), next + BEAT + sw(), 0.009));       // 2박·3박: 화음
+          chord.forEach(n => piano(bus, midi(n), next + BEAT * 2 + sw(), 0.007));
+          bowed(bus, midi(bass), next, BEAT * 3, 0.0035, 700, 4);                 // 첼로: 마디 내내 낮게
+          let off = 0;
+          mel.forEach(([n, beats]) => {                                             // 바이올린 선율
+            bowed(bus, midi(n), next + off * BEAT, beats * BEAT * 0.95, 0.0055, 2200, 7);
+            off += beats;
           });
-          next += BEAT * 8; bar++;
+          next += BEAT * 3; bar++;
         }
       };
       schedule();
@@ -838,8 +851,8 @@
       clearInterval(st.timer);
       const t = AC.currentTime;
       st.bus.gain.cancelScheduledValues(t); st.bus.gain.setValueAtTime(st.bus.gain.value, t);
-      st.bus.gain.linearRampToValueAtTime(0, t + 2);
-      setTimeout(() => st.bus.disconnect(), 4000);
+      st.bus.gain.linearRampToValueAtTime(0, t + 2.5);
+      setTimeout(() => st.bus.disconnect(), 4500);
     }
   }
 
