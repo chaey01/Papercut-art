@@ -1292,9 +1292,12 @@
   function paperFlip(v = 1) {
     if (AC && flipBuf) {
       const t = AC.currentTime, src = AC.createBufferSource(); src.buffer = flipBuf;
-      src.playbackRate.value = 0.86 + Math.random() * 0.26;   // 장마다 아주 조금씩 다르게
-      const g = AC.createGain(), len = Math.min(FLIP_MAX, flipBuf.duration);
-      g.gain.setValueAtTime(0.22 * v, t); g.gain.setValueAtTime(0.22 * v, t + len - 0.12);   // 책장 소리 크기 g.gain.linearRampToValueAtTime(0, t + len);
+      const FLIP_TEMPO = 1.3;   // 책장 소리 빠르기 (1 = 원래 속도)
+      const rate = FLIP_TEMPO * (0.86 + Math.random() * 0.26);   // 장마다 아주 조금씩 다르게
+      src.playbackRate.value = rate;
+      const g = AC.createGain(), len = Math.min(FLIP_MAX, flipBuf.duration) / rate;
+      const VOL = 0.22;   // 책장 소리 크기
+      g.gain.setValueAtTime(VOL * v, t); g.gain.setValueAtTime(VOL * v, t + Math.max(0.01, len - 0.1)); g.gain.linearRampToValueAtTime(0, t + len);
       src.connect(g); g.connect(master); src.start(t); src.stop(t + len + 0.02);
       return;
     }
