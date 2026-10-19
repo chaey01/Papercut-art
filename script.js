@@ -592,7 +592,7 @@
     if (!AC) return;
     const t = AC.currentTime;
     const out = AC.createGain(); out.gain.value = 1; out.connect(master);
-    const wet = AC.createGain(); wet.gain.value = 0.15; out.connect(wet); wet.connect(getReverb());
+    const wet = AC.createGain(); wet.gain.value = 0.06; out.connect(wet); wet.connect(getReverb());   // 물방울 울림 정도
     const bubble = (dl, f0, v, dur) => {   // 공기방울 공명: 음이 빠르게 올라가며 금방 사라짐
       const o = AC.createOscillator(); o.type = 'sine';
       o.frequency.setValueAtTime(f0, t + dl); o.frequency.exponentialRampToValueAtTime(f0 * 2.2, t + dl + dur);
@@ -600,7 +600,7 @@
       g.gain.linearRampToValueAtTime(v, t + dl + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + dur);
       o.connect(g); g.connect(out); o.start(t + dl); o.stop(t + dl + dur + 0.02);
     };
-    bubble(0, 480 + Math.random() * 220, 0.07, 0.07);                      // 첫 '퐁'
+    bubble(0, 480 + Math.random() * 220, 0.07, 0.055);                      // 첫 '퐁'
     // 물이 튀는 '찰박' (짧은 물결 잡음)
     const src = AC.createBufferSource(); src.buffer = noiseBuf;
     const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200 + Math.random() * 800; bp.Q.value = 1.2;
