@@ -96,7 +96,8 @@
       P.ensureAudio();
       // 종이가 한 장씩 넘어가 일어설 때마다 '스윽-탁' (.plane 의 .21s + i×183ms 와 맞춤)
       const n = intro.querySelectorAll('.plane').length;
-      for (let i = 0; i < n; i++) setTimeout(() => P.paperFlip(0.7 + Math.random() * 0.5), 210 + i * 183);
+      // 세 장마다 한 번만 (소리가 너무 빽빽하지 않게)
+      for (let i = 0; i < n; i += 3) setTimeout(() => P.paperFlip(0.75 + Math.random() * 0.25), 210 + i * 183);
     }
     setTimeout(zoomIn, T_UNFOLD + T_FOREST);  // 나무까지 다 선 뒤 카메라가 들어감
   }

@@ -1269,7 +1269,7 @@
       const t = AC.currentTime, src = AC.createBufferSource(); src.buffer = flipBuf;
       src.playbackRate.value = 0.94 + Math.random() * 0.12;   // 장마다 아주 조금씩 다르게
       const g = AC.createGain(), len = Math.min(FLIP_MAX, flipBuf.duration);
-      g.gain.setValueAtTime(0.9 * v, t); g.gain.setValueAtTime(0.9 * v, t + len - 0.12); g.gain.linearRampToValueAtTime(0, t + len);
+      g.gain.setValueAtTime(0.4 * v, t); g.gain.setValueAtTime(0.4 * v, t + len - 0.12);   // 책장 소리 크기 g.gain.linearRampToValueAtTime(0, t + len);
       src.connect(g); g.connect(master); src.start(t); src.stop(t + len + 0.02);
       return;
     }
@@ -1288,7 +1288,7 @@
     const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.55;
     bp.frequency.setValueAtTime(700, t); bp.frequency.exponentialRampToValueAtTime(2300, t + dur * 0.7); bp.frequency.exponentialRampToValueAtTime(1300, t + dur);
     const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.05, t + dur * 0.65);
+    g.gain.linearRampToValueAtTime(0.025, t + dur * 0.65);
     g.gain.linearRampToValueAtTime(0.0, t + dur);
     src.connect(bp); bp.connect(g); g.connect(out); src.start(t, Math.random()); src.stop(t + dur + 0.05);
     // 2) 종이결이 스치는 잔잔한 사각거림 (드문드문 아주 작게)
