@@ -111,7 +111,6 @@
           }
         }
       });
-      if (lastBirdAt) setTimeout(() => P.sparkle && P.sparkle(), lastBirdAt + 520);   // 새들이 다 올라오면 '띠옹~'
     }
     setTimeout(zoomIn, T_UNFOLD + T_FOREST);  // 나무까지 다 선 뒤 카메라가 들어감
   }
