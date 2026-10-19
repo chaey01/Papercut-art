@@ -96,13 +96,20 @@
     if (P) {
       P.ensureAudio();
       // 종이가 한 장씩 넘어가 일어설 때마다 '스윽-탁' (.plane 의 .21s + i×183ms 와 맞춤)
-      // 종이는 다섯 장마다 책장 소리, 구름은 소리 없음, 새는 날갯짓 + 짹 (각 종이가 일어서는 시점에 맞춤)
-      let paperN = 0, birdN = 0;
+      // 종이는 불규칙하게 가끔 책장 소리, 구름은 소리 없음, 새는 날갯짓 + 짹 (각 종이가 일어서는 시점에 맞춤)
+      let paperN = 0, birdN = 0, lastFlip = -1e9;
       intro.querySelectorAll('.plane').forEach((pl, i) => {
         const at = 210 + i * 183, kind = pl.dataset.kind;
         if (kind === 'cloud') { /* 구름은 소리 없이 */ }
         else if (kind === 'bird') { const k = birdN++; setTimeout(() => P.birdSound && P.birdSound(k), at + 80); }
-        else if (paperN++ % 5 === 0) setTimeout(() => P.paperFlip(0.75 + Math.random() * 0.25), at);
+        else {
+          // 불규칙하게: 첫 장은 꼭, 그 뒤로는 무작위로 띄엄띄엄 (가까운 소리끼리는 최소 0.45초 간격), 타이밍·세기도 제각각
+          const tAt = at + (Math.random() - 0.3) * 160;
+          if (paperN++ === 0 || (Math.random() < 0.24 && tAt - lastFlip > 450)) {
+            lastFlip = tAt;
+            setTimeout(() => P.paperFlip(0.55 + Math.random() * 0.45), Math.max(0, tAt));
+          }
+        }
       });
     }
     setTimeout(zoomIn, T_UNFOLD + T_FOREST);  // 나무까지 다 선 뒤 카메라가 들어감
