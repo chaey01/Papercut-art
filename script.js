@@ -1406,7 +1406,7 @@
         .map(L => ({ d: L.d, sense: L.sense, canvas: L.canvas, tiles: L.tiles, bbox: L.bbox, hinge: L.hinge }))
     };
   }
-  window.papercut = { birds, comers, ensureAudio, unfold, paperFlip, cloudSound, birdSound, bowl, place, popAll, paperLayers, thump: () => thud(0.95) };
+  window.papercut = { birds, comers, ensureAudio, unfold, paperFlip, cloudSound, birdSound, chirp, bowl, place, popAll, paperLayers, thump: () => thud(0.95) };
 
   resize();
   updateUI();

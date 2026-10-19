@@ -101,7 +101,7 @@
       intro.querySelectorAll('.plane').forEach((pl, i) => {
         const at = 210 + i * 183, kind = pl.dataset.kind;
         if (kind === 'cloud') { /* 구름은 소리 없이 */ }
-        else if (kind === 'bird') { const k = birdN++; setTimeout(() => P.birdSound && P.birdSound(k), at + 80); }
+        else if (kind === 'bird') { const k = birdN++; if (k % 2 === 0) setTimeout(() => P.chirp && P.chirp(), at + 150 + Math.random() * 150); }   // 푸드득 없이 가끔 '짹'만
         else {
           // 불규칙하게: 첫 장은 꼭, 그 뒤로는 무작위로 띄엄띄엄 (가까운 소리끼리는 최소 0.45초 간격), 타이밍·세기도 제각각
           const tAt = at + (Math.random() - 0.3) * 160;
