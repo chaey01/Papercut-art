@@ -34,6 +34,7 @@
       // 장면의 모든 종이를 카드 안에 세움
       const plane = document.createElement('div');
       plane.className = 'plane';
+      plane.dataset.kind = isCloud(L) ? 'cloud' : isBird(L) ? 'bird' : 'paper';   // 효과음 구분용
       // 깊이 d(0=맨 뒤, 1=맨 앞)를 카드 바닥 위의 위치로
       // 각 종이는 바로 뒤 종이의 밑변에 붙어서 섬 (종이 한 장 두께만큼만 앞으로)
       const p = 2 + byDepth.indexOf(L) * STEP;
@@ -95,9 +96,14 @@
     if (P) {
       P.ensureAudio();
       // 종이가 한 장씩 넘어가 일어설 때마다 '스윽-탁' (.plane 의 .21s + i×183ms 와 맞춤)
-      const n = intro.querySelectorAll('.plane').length;
-      // 세 장마다 한 번만 (소리가 너무 빽빽하지 않게)
-      for (let i = 0; i < n; i += 3) setTimeout(() => P.paperFlip(0.75 + Math.random() * 0.25), 210 + i * 183);
+      // 종이는 세 장마다 책장 소리, 구름은 맑은 종소리, 새는 날갯짓 + 짹 (각 종이가 일어서는 시점에 맞춤)
+      let paperN = 0, cloudN = 0, birdN = 0;
+      intro.querySelectorAll('.plane').forEach((pl, i) => {
+        const at = 210 + i * 183, kind = pl.dataset.kind;
+        if (kind === 'cloud') { const k = cloudN++; setTimeout(() => P.cloudSound && P.cloudSound(k), at + 120); }
+        else if (kind === 'bird') { const k = birdN++; setTimeout(() => P.birdSound && P.birdSound(k), at + 80); }
+        else if (paperN++ % 3 === 0) setTimeout(() => P.paperFlip(0.75 + Math.random() * 0.25), at);
+      });
     }
     setTimeout(zoomIn, T_UNFOLD + T_FOREST);  // 나무까지 다 선 뒤 카메라가 들어감
   }

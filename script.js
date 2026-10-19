@@ -1275,6 +1275,41 @@
     }
     return paperFlipSynth(v);
   }
+  // 인트로: 구름이 올라올 때 — 맑고 부드러운 종소리 (구름마다 음이 하나씩 올라감)
+  function cloudSound(k = 0) {
+    if (!AC) return;
+    const t = AC.currentTime, base = [1046.5, 1318.5, 1568][k % 3];
+    const out = AC.createGain(); out.gain.value = 1;
+    out.connect(master); out.connect(getReverb());
+    [[1, 0.05, 'sine'], [2, 0.012, 'sine'], [3.01, 0.006, 'triangle']].forEach(([m, v, type]) => {
+      const o = AC.createOscillator(); o.type = type; o.frequency.value = base * m;
+      const g = AC.createGain(); g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + 1.7);
+    });
+    // 아주 옅은 '후—' 공기 소리
+    const src = AC.createBufferSource(); src.buffer = noiseBuf;
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+    const gn = AC.createGain(); gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(0.02, t + 0.25); gn.gain.linearRampToValueAtTime(0, t + 0.8);
+    src.connect(lp); lp.connect(gn); gn.connect(master); src.start(t, Math.random()); src.stop(t + 0.85);
+  }
+  // 인트로: 새가 올라올 때 — '푸드득' 짧은 날갯짓 (+ 가끔 짹)
+  function birdSound(k = 0) {
+    if (!AC) return;
+    const t = AC.currentTime, dur = 0.22 + Math.random() * 0.08;
+    const src = AC.createBufferSource(); src.buffer = noiseBuf;
+    const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300 + Math.random() * 500; bp.Q.value = 0.9;
+    const g = AC.createGain(); g.gain.setValueAtTime(0, t);
+    for (let q = 0, n = Math.round(dur / 0.045); q < n; q++) {   // 날개를 퍼덕이는 박자
+      const tq = t + q * 0.045, v = 0.035 * (1 - q / n * 0.6);
+      g.gain.setValueAtTime(0.002, tq); g.gain.linearRampToValueAtTime(v, tq + 0.012); g.gain.linearRampToValueAtTime(0.002, tq + 0.04);
+    }
+    const pan = AC.createStereoPanner ? AC.createStereoPanner() : null;
+    if (pan) pan.pan.value = (Math.random() - 0.5) * 0.8;
+    src.connect(bp); bp.connect(g); g.connect(pan || master); if (pan) pan.connect(master);
+    src.start(t, Math.random()); src.stop(t + dur + 0.05);
+    if (k % 2 === 0) setTimeout(chirp, 120 + Math.random() * 120);
+  }
   function paperFlipSynth(v = 1) {
     // 책장 넘기는 소리: '스르륵' 부드럽게 커지는 종이 바람 + 잔잔한 종이결 + 끝에 '팔락' 내려앉음
     if (!AC) return;
@@ -1343,7 +1378,7 @@
         .map(L => ({ d: L.d, sense: L.sense, canvas: L.canvas, tiles: L.tiles, bbox: L.bbox, hinge: L.hinge }))
     };
   }
-  window.papercut = { birds, comers, ensureAudio, unfold, paperFlip, bowl, place, popAll, paperLayers, thump: () => thud(0.95) };
+  window.papercut = { birds, comers, ensureAudio, unfold, paperFlip, cloudSound, birdSound, bowl, place, popAll, paperLayers, thump: () => thud(0.95) };
 
   resize();
   updateUI();
