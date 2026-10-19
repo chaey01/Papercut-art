@@ -132,5 +132,15 @@
   const T_EDGE = 500;   // 선으로 보이는 시간
   const T_FACE = 1700;  // 선이 면으로 펼쳐지고 편지를 보여 주는 시간
   setTimeout(() => intro.classList.replace('edge', 'face'), T_EDGE);
-  setTimeout(() => { intro.classList.remove('face'); openCard(); }, T_EDGE + T_FACE);
+  // 편지가 다 나타나면 클릭(또는 Enter·Space)을 기다림 → 누르면 카드가 열림 (이 클릭으로 소리도 켜짐)
+  let canOpen = false;
+  setTimeout(() => { canOpen = true; intro.classList.add('wait'); }, T_EDGE + T_FACE);
+  const start = () => {
+    if (!canOpen || started) return;
+    wake();
+    intro.classList.remove('face', 'wait');
+    openCard();
+  };
+  intro.addEventListener('click', start);
+  window.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') start(); });
 })();
