@@ -102,7 +102,7 @@
         const at = 210 + i * 183, kind = pl.dataset.kind;
         if (kind === 'cloud') { const k = cloudN++; setTimeout(() => P.cloudSound && P.cloudSound(k), at + 120); }
         else if (kind === 'bird') { const k = birdN++; setTimeout(() => P.birdSound && P.birdSound(k), at + 80); }
-        else if (paperN++ % 3 === 0) setTimeout(() => P.paperFlip(0.75 + Math.random() * 0.25), at);
+        else if (paperN++ % 5 === 0) setTimeout(() => P.paperFlip(0.75 + Math.random() * 0.25), at);
       });
     }
     setTimeout(zoomIn, T_UNFOLD + T_FOREST);  // 나무까지 다 선 뒤 카메라가 들어감

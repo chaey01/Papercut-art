@@ -588,15 +588,25 @@
     const [wx, wy] = toWorld(cx, cy, lakeLayer.d);
     return hitCtx.isPointInPath(lakeLayer.path, wx, wy) && wy < 900 ? [wx, wy] : null;
   }
-  function plop() {   // '퐁' 물방울
+  function plop() {   // '또롱' — 높고 맑은 물방울 + 길게 남는 울림
     if (!AC) return;
-    const t = AC.currentTime, f0 = 520 + Math.random() * 160;
-    [[0, 1, 1], [0.12 + Math.random() * 0.05, 0.3, 1.3]].forEach(([dl, v, fm]) => {
+    const t = AC.currentTime, f0 = 1150 + Math.random() * 350;
+    const out = AC.createGain(); out.gain.value = 1;
+    out.connect(master);
+    const wet = AC.createGain(); wet.gain.value = 0.9; out.connect(wet); wet.connect(getReverb());
+    [[0, 1, 1], [0.11 + Math.random() * 0.05, 0.35, 1.5]].forEach(([dl, v, fm]) => {
       const o = AC.createOscillator(); o.type = 'sine';
-      o.frequency.setValueAtTime(f0 * fm, t + dl); o.frequency.exponentialRampToValueAtTime(f0 * fm * 2.7, t + dl + 0.07);
+      o.frequency.setValueAtTime(f0 * fm, t + dl); o.frequency.exponentialRampToValueAtTime(f0 * fm * 1.9, t + dl + 0.05);
       const g = AC.createGain(); g.gain.setValueAtTime(0, t + dl);
-      g.gain.linearRampToValueAtTime(0.1 * v, t + dl + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + 0.17);
-      o.connect(g); g.connect(master); o.start(t + dl); o.stop(t + dl + 0.2);
+      g.gain.linearRampToValueAtTime(0.07 * v, t + dl + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dl + 0.22);
+      o.connect(g); g.connect(out); o.start(t + dl); o.stop(t + dl + 0.25);
+    });
+    // 맑게 남는 종 같은 여운
+    [[f0 * 2.4, 0.022], [f0 * 3.6, 0.008]].forEach(([f, v]) => {
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+      const g = AC.createGain(); g.gain.setValueAtTime(0, t + 0.03);
+      g.gain.linearRampToValueAtTime(v, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+      o.connect(g); g.connect(out); o.start(t + 0.03); o.stop(t + 1.35);
     });
   }
   stage.addEventListener('pointerdown', e => {
@@ -658,7 +668,7 @@
   // 밤하늘: 별 · 반딧불이
   const stars = [], flies = [];
   { const r = rng(777);
-    for (let i = 0; i < 190; i++) stars.push({ x: -300 + r() * 3000, y: -250 + r() * 760, r: 0.8 + r() * r() * 2.4, ph: r() * 6, sp: 0.6 + r() * 2.2 });
+    for (let i = 0; i < 190; i++) stars.push({ x: -300 + r() * 3000, y: -250 + r() * 760, r: 0.5 + r() * r() * 1.0, ph: r() * 6, sp: 0.4 + r() * 1.4, big: r() < 0.12 });
     for (let i = 0; i < 35; i++) flies.push({ R: 7 + Math.pow(r(), 2.2) * 38, br: 0.35 + r() * 0.65, x: -100 + r() * 2600, y: 560 + r() * 380, d: 0.55 + r() * 0.42, ph: r() * 6, ph2: r() * 6, f1: 0.15 + r() * 0.35, f2: 0.2 + r() * 0.4, sp: 0.8 + r() * 1.6, th: r() });
   }
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
@@ -780,37 +790,45 @@
     [98.0, 146.83, 185.0, 246.94],     // Gmaj7
     [110.0, 164.81, 246.94, 277.18]    // A add9
   ];
-  function stringChord(bus, notes, t, dur) {
-    for (const fq of notes) {
+  function stringChord(bus, notes, t, dur) {   // 아주 옅은 부드러운 바탕음 (두 음만, 둥근 소리)
+    for (const fq of notes.slice(1, 3)) {
       const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.014, t + 3.2);           // 활을 천천히 긋듯
-      g.gain.setValueAtTime(0.014, t + dur - 3.5);
+      g.gain.linearRampToValueAtTime(0.007, t + 3.5);
+      g.gain.setValueAtTime(0.007, t + dur - 3.5);
       g.gain.linearRampToValueAtTime(0, t + dur);
-      const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = 0.3;
+      const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650; lp.Q.value = 0.2;
       lp.connect(g); g.connect(bus);
-      const vib = AC.createOscillator(); vib.frequency.value = 4.6 + Math.random() * 0.8;
-      const vibG = AC.createGain(); vibG.gain.value = 4; vib.connect(vibG);
-      [-7, 6].forEach(cents => {   // 살짝 어긋난 두 줄 → 현악 합주 느낌
-        const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fq; o.detune.value = cents;
-        vibG.connect(o.detune); o.connect(lp); o.start(t); o.stop(t + dur + 0.1);
-      });
-      vib.start(t); vib.stop(t + dur + 0.1);
+      const o = AC.createOscillator(); o.type = 'triangle'; o.frequency.value = fq;
+      o.connect(lp); o.start(t); o.stop(t + dur + 0.1);
     }
+  }
+  const PLUCK = [587.33, 659.25, 739.99, 880, 987.77, 1174.66];   // D장조 오음계 — 어떤 순서로 울려도 편안함
+  function softPluck(bus) {   // 드문드문 '똥' 하고 울리는 맑은 음 (뮤직박스처럼 작게)
+    const t = AC.currentTime + 0.02, f = PLUCK[Math.floor(Math.random() * PLUCK.length)];
+    [[1, 0.018], [2, 0.004]].forEach(([m, v]) => {
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f * m;
+      const g = AC.createGain(); g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(v, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+      o.connect(g); g.connect(bus); o.start(t); o.stop(t + 2.5);
+    });
   }
   function setStrings(on) {
     if (!AC) return;
     if (on && !strings) {
       const bus = AC.createGain(); bus.gain.value = 1;
-      const dry = AC.createGain(); dry.gain.value = 0.55; bus.connect(dry); dry.connect(master);
-      const wet = AC.createGain(); wet.gain.value = 0.7; bus.connect(wet); wet.connect(getReverb());
+      const dry = AC.createGain(); dry.gain.value = 0.8; bus.connect(dry); dry.connect(master);
+      const wet = AC.createGain(); wet.gain.value = 0.3; bus.connect(wet); wet.connect(getReverb());
       let i = 0;
       const play = () => { stringChord(bus, CHORDS[i++ % CHORDS.length], AC.currentTime + 0.05, 11); };
       play();
       const timer = setInterval(play, 8000);   // 8초마다 다음 화음 (앞 화음과 3초쯤 겹침)
-      strings = { bus, timer };
+      let alive = true;
+      const pluckLoop = () => { if (!alive) return; softPluck(bus); setTimeout(pluckLoop, 2200 + Math.random() * 3200); };
+      setTimeout(pluckLoop, 900);
+      strings = { bus, timer, stop: () => { alive = false; } };
     } else if (!on && strings) {
       const st = strings; strings = null;
-      clearInterval(st.timer);
+      clearInterval(st.timer); if (st.stop) st.stop();
       const t = AC.currentTime;
       st.bus.gain.cancelScheduledValues(t); st.bus.gain.setValueAtTime(st.bus.gain.value, t);
       st.bus.gain.linearRampToValueAtTime(0, t + 2.5);
@@ -1035,9 +1053,16 @@
       setWorld(0, 0, zoom);
       ctx.globalCompositeOperation = 'lighter';
       for (const st of stars) {
-        const a = night * night * (0.45 + 0.55 * Math.sin(t * st.sp + st.ph) ** 2);
-        ctx.fillStyle = `rgba(255,250,235,${a})`;
-        ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
+        // 평소엔 희미하다가 가끔 '반짝' 하고 밝아짐
+        const tw = Math.pow(Math.max(0, Math.sin(t * st.sp + st.ph)), 12);
+        const a = Math.min(1, night * (0.6 + 0.4 * tw) * 1.3);
+        ctx.fillStyle = `rgba(255,250,240,${a})`;
+        ctx.beginPath(); ctx.arc(st.x, st.y, st.r * (1 + tw * 0.6), 0, Math.PI * 2); ctx.fill();
+        if (st.big && tw > 0.05) {   // 몇몇 별은 반짝일 때 가는 빛줄기 십자
+          const L2 = 6 + tw * 9, w2 = 0.35;
+          ctx.fillStyle = `rgba(255,250,240,${a * 0.8})`;
+          ctx.fillRect(st.x - L2, st.y - w2, L2 * 2, w2 * 2); ctx.fillRect(st.x - w2, st.y - L2, w2 * 2, L2 * 2);
+        }
       }
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -1269,7 +1294,7 @@
       const t = AC.currentTime, src = AC.createBufferSource(); src.buffer = flipBuf;
       src.playbackRate.value = 0.94 + Math.random() * 0.12;   // 장마다 아주 조금씩 다르게
       const g = AC.createGain(), len = Math.min(FLIP_MAX, flipBuf.duration);
-      g.gain.setValueAtTime(0.4 * v, t); g.gain.setValueAtTime(0.4 * v, t + len - 0.12);   // 책장 소리 크기 g.gain.linearRampToValueAtTime(0, t + len);
+      g.gain.setValueAtTime(0.22 * v, t); g.gain.setValueAtTime(0.22 * v, t + len - 0.12);   // 책장 소리 크기 g.gain.linearRampToValueAtTime(0, t + len);
       src.connect(g); g.connect(master); src.start(t); src.stop(t + len + 0.02);
       return;
     }
@@ -1323,7 +1348,7 @@
     const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.55;
     bp.frequency.setValueAtTime(700, t); bp.frequency.exponentialRampToValueAtTime(2300, t + dur * 0.7); bp.frequency.exponentialRampToValueAtTime(1300, t + dur);
     const g = AC.createGain(); g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.025, t + dur * 0.65);
+    g.gain.linearRampToValueAtTime(0.014, t + dur * 0.65);
     g.gain.linearRampToValueAtTime(0.0, t + dur);
     src.connect(bp); bp.connect(g); g.connect(out); src.start(t, Math.random()); src.stop(t + dur + 0.05);
     // 2) 종이결이 스치는 잔잔한 사각거림 (드문드문 아주 작게)
