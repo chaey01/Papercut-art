@@ -1038,9 +1038,7 @@
       }
     }
     const complete = active.size === 4 && allSettled;
-    if (complete && !hero) {
-      hero = { t0: now, x: 1420, y: 1080, size: 70, rate: 7, a: 1 };
-    }
+    // (산 쪽으로 날아가 산꼭대기 근처를 맴돌던 작은 새는 삭제함)
     comp += ((complete ? 1 : 0) - comp) * (reduce ? 1 : 0.012);
     if (complete !== settledAll) { settledAll = complete; updateUI(); }
 
