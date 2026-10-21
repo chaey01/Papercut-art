@@ -131,6 +131,21 @@ body.ready:not(.settled) .note { transition-delay: calc(var(--i) * .12s + .1s); 
 /* 마우스를 올리면 모서리가 살짝 들림 */
 body.ready .tag:hover .note { --peel: 7px; }
 
+/* 아직 안 뗀 스티커는 몇 초마다 한 장씩 모서리가 살짝 들썩였다 다시 붙음 → "떼어 보세요" */
+@keyframes nudge {
+  0%, 78%, 100% { --peel: 0px; }
+  84% { --peel: 15px; }
+  89% { --peel: 6px; }
+  93% { --peel: 11px; }
+}
+body.ready.settled .tag[aria-pressed="false"]:not(:hover) .note {
+  animation: nudge 6.4s cubic-bezier(.4, 0, .3, 1) infinite;
+  animation-delay: calc(var(--i) * 1.6s + 1.2s);
+}
+@media (prefers-reduced-motion: reduce) {
+  body.ready.settled .tag .note { animation: none; }
+}
+
 /* 누르면: 모서리가 살짝 접히며 들리고 → 그대로 왼쪽 위로 떼어져 날아가며 자연스럽게 사라짐.
    그 자리엔 투명한 글자만 남음. 다시 누르면 스티커가 톡 다시 붙음 */
 body.ready .tag[aria-pressed="true"] .note {
