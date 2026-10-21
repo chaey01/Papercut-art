@@ -3,11 +3,7 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const SENSES = ['brown', 'chipping', 'peaceful', 'mountain'];
   // true로 바꾸면 아직 놓이지 않은 종이 자리가 점선으로 보여요
-  const SHOW_GHOST = true;
-  // 아직 놓이지 않은 종이 자리: 평소엔 아주 옅게(GHOST_IDLE), 단어에 마우스를 올리면 그 단어 종이만 또렷하게(1)
-  const GHOST_IDLE = 0.55;
-  let hoverSense = null;
-  const ghostLv = { brown: GHOST_IDLE, chipping: GHOST_IDLE, peaceful: GHOST_IDLE, mountain: GHOST_IDLE };
+  const SHOW_GHOST = false;
 
   function rng(seed) {
     return function () {
@@ -1103,26 +1099,15 @@
       if ((b.vx > 0 ? b.x > 2800 : b.x < -400) || b.a <= 0) birds.splice(i, 1);   // 날아가는 쪽 끝을 지나면 사라짐
     }
 
-    for (const s in ghostLv) {
-      const target = hoverSense === s && !active.has(s) ? 1 : GHOST_IDLE;
-      ghostLv[s] += (target - ghostLv[s]) * Math.min(1, dt * 6);
-    }
     for (const L of layers) {
       // ghost cut-lines where the paper will rest
       if (SHOW_GHOST && L.ghost) {
-        const lv = ghostLv[L.sense] ?? GHOST_IDLE;
-        const ga = (1 - (L.anim ? Math.max(L.v, L.alpha) : L.v)) * 0.55 * lv;
+        const ga = (1 - (L.anim ? Math.max(L.v, L.alpha) : L.v)) * 0.32;
         if (ga > 0.01) {
           const k = setWorld(L.d, 0, zoom);
-          // 마우스를 올린 단어: 놓일 자리에 반투명 종이가 살짝 비침
-          if (lv > GHOST_IDLE + 0.02 && L.path) {
-            ctx.globalAlpha = ga * 0.26;
-            ctx.fillStyle = '#f6e6c4';
-            ctx.fill(L.path);
-          }
           ctx.globalAlpha = ga;
           ctx.strokeStyle = '#e6d4aa';
-          ctx.lineWidth = 1.5 * dpr / k;
+          ctx.lineWidth = 1.1 * dpr / k;
           ctx.setLineDash([5 * dpr / k, 6 * dpr / k]);
           ctx.stroke(L.ghost);
           ctx.setLineDash([]);
@@ -1301,13 +1286,6 @@
     tags.forEach(b => b.setAttribute('aria-pressed', active.has(b.dataset.sense) ? 'true' : 'false'));
   }
   tags.forEach(b => b.addEventListener('click', () => toggle(b.dataset.sense)));
-  // 단어에 마우스를 올리거나 키보드로 고르면, 그 단어 종이가 놓일 자리를 미리 보여 줌
-  tags.forEach(b => {
-    const on = () => { hoverSense = b.dataset.sense; };
-    const off = () => { if (hoverSense === b.dataset.sense) hoverSense = null; };
-    b.addEventListener('pointerenter', on); b.addEventListener('pointerleave', off);
-    b.addEventListener('focus', on); b.addEventListener('blur', off);
-  });
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (!document.body.classList.contains('ready')) return;

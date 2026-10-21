@@ -163,6 +163,23 @@ body.ready .tag[aria-pressed="true"] .note {
 body.ready .tag[aria-pressed="true"]::before { opacity: 1; transition: opacity .4s ease .45s; }
 body.ready .tag .note { transition: --peel .45s cubic-bezier(.3, 1.1, .5, 1), transform .45s cubic-bezier(.3, 1.4, .5, 1), filter .4s ease, opacity .2s ease; }
 
+/* 빈 무대 가운데 안내 문구: 인트로가 끝나면 천천히 나타나고, 단어를 하나라도 누르면 사라짐 */
+.invite {
+  position: fixed; left: 0; right: 0; top: 50%;
+  transform: translateY(-50%);
+  margin: 0; text-align: center; pointer-events: none;
+  font-family: "Archivo Narrow", "Arial Narrow", "Helvetica Neue", sans-serif;
+  font-weight: 600; font-size: 13px; letter-spacing: .32em; text-transform: uppercase;
+  color: rgba(255, 246, 225, .9);
+  text-shadow: 0 1px 12px rgba(120, 60, 70, .25);
+  opacity: 0;
+  transition: opacity .8s ease;
+}
+body.ready.settled .invite { opacity: 1; animation: invite-breathe 4s ease-in-out 1s infinite; }
+body:has(.tag[aria-pressed="true"]) .invite { opacity: 0; animation: none; }
+@keyframes invite-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { body.ready.settled .invite { animation: none; } }
+
 .tag:focus-visible { outline: 2px solid #f2bf74; outline-offset: 3px; }
 
 @media (max-width: 480px) {
